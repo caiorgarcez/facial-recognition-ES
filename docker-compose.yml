@@ -1,12 +1,15 @@
-version: "3"
+version: "3.2"
 
 services:
   # django-back-end-container
   website:
-    context: websrc/
+    env_file:
+    - .env
+    build:
+      context: websrc/
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/code
+      - ./websrc:/code
     ports:
       - 8000:8000
     networks:
@@ -17,13 +20,15 @@ services:
   # postgres-container
   db:
     image: postgres:13
-    args:
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+    environment: 
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
     networks:
       - elk
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+    depends_on:
+      - kibana
 
   # elasticsearch-container
   elasticsearch:
@@ -37,7 +42,7 @@ services:
         target: /usr/share/elasticsearch/config/elasticsearch.yml
         read_only: true
       - type: volume
-        source: elastic
+        source: elasticsearch
         target: /usr/share/elasticsearch/data
     ports: 
       - "9200:9200"
