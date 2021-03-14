@@ -1,0 +1,78 @@
+version: "3"
+
+services:
+  # django-back-end-container
+  website:
+    context: websrc/
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - 8000:8000
+    networks:
+      - elk
+    depends_on:
+      - db
+
+  # postgres-container
+  db:
+    image: postgres:13
+    args:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+    networks:
+      - elk
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  # elasticsearch-container
+  elasticsearch:
+    build:
+      context: elastic/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./elastic/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: true
+      - type: volume
+        source: elastic
+        target: /usr/share/elasticsearch/data
+    ports: 
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      discovery.type: single-node
+    networks:
+      - elk
+
+  # kibana-container
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./kibana/config/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+    ports:
+      - "5601:5601"
+    # attach container to bridge net
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+# define internal bridge network for solving NAT
+networks:
+  elk:
+    driver: bridge 
+
+# persist elasticsearch and postgres data locally
+volumes:
+  elasticsearch:
+  postgres_data:
