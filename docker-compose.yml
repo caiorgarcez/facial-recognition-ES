@@ -1,41 +1,41 @@
-version: "3.2"
+version: "3"
 
 services:
-  # django-back-end-container
-  website:
-    env_file:
-    - .env
-    build:
-      context: websrc/
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - ./websrc:/code
-    ports:
-      - 8000:8000
-    networks:
-      - elk
-    depends_on:
-      - db
+  # # django-back-end-container
+  # website:
+  #   env_file:
+  #   - .env
+  #   build:
+  #     context: websrc/
+  #   command: python manage.py runserver 0.0.0.0:8000
+  #   volumes:
+  #     - ./websrc:/code
+  #   ports:
+  #     - 8000:8000
+  #   networks:
+  #     - elk
+  #   depends_on:
+  #     - db
 
-  # postgres-container
-  db:
-    image: postgres:13
-    environment: 
-      - POSTGRES_USER=$POSTGRES_USER
-      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-    networks:
-      - elk
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    depends_on:
-      - kibana
+  # # postgres-container
+  # db:
+  #   image: postgres:13
+  #   environment: 
+  #     - POSTGRES_USER=$POSTGRES_USER
+  #     - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+  #   networks:
+  #     - elk
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data/
+  #   depends_on:
+  #     - kibana
 
   # elasticsearch-container
   elasticsearch:
     build:
       context: elastic/
-      args:
-        ELK_VERSION: $ELK_VERSION
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: ./elastic/config/elasticsearch.yml
@@ -57,8 +57,8 @@ services:
   kibana:
     build:
       context: kibana/
-      args:
-        ELK_VERSION: $ELK_VERSION
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: ./kibana/config/kibana.yml
@@ -66,6 +66,7 @@ services:
         read_only: true
     ports:
       - "5601:5601"
+      
     # attach container to bridge net
     networks:
       - elk
@@ -80,4 +81,3 @@ networks:
 # persist elasticsearch and postgres data locally
 volumes:
   elasticsearch:
-  postgres_data:
