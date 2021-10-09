@@ -1,35 +1,62 @@
-import cv2
-import face_recognition
-import imutils
-import numpy
+import argparse
+
+import numpy as np
 from elasticsearch import Elasticsearch
 
 elastic_con = Elasticsearch([{"host": "localhost"}])
 
-# TODO: replace with pickle
-with open("embedding.txt", "r", encoding="utf-8") as f:
-    face_encoding = f.read()
+ap = argparse.ArgumentParser()
+ap.add_argument(
+    "-f", "--file", required=True, help="Full path for pickle embedings file."
+)
+args = vars(ap.parse_args())
 
-mapping = {
-    "mappings": {
-        "properties": {
-            "embedding": {"type": "dense_vector", "dims": 128},
-            "user": {"type": "keyword"},
+
+def create_ES_index():
+    """create an index on Elasticsearch according to a predefined mapping
+
+    Returns:
+        response from ES
+    """
+    # create index mapping for 128 n-dims embedding
+    mapping = {
+        "mappings": {
+            "properties": {
+                "embedding": {"type": "dense_vector", "dims": 128},
+                "user": {"type": "keyword"},
+            }
         }
     }
-}
+    return elastic_con.indices.create(index="users", ignore=400, body=mapping)
 
-response = elastic_con.indices.create(index="users", ignore=400, body=mapping)
-print(f"[INFO] ES index creation response: {response}")
 
-image = cv2.imread("./images/caio.jpg")
-rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+def post_user_to_ES_index(username, embedding, user_id):
+    """Create an user in the user's index on Elasticsearch
 
-boxes = face_recognition.face_locations(rgb, model="hog")
-face_encoding = face_recognition.face_encodings(image, boxes)[0]
+    Args:
+        username (string): User's name.
+        embedding (array): User's 128 n-dims array.
+        user_id [integer]: Desired id number for the provided user.
 
-doc = {
-    "user": "Caio",
-    "embedding": face_encoding,
-}
-res = elastic_con.index(index="users", id=1, body=doc)
+    Returns:
+        response from ES
+    """
+    default_doc = {
+        "user": username,
+        "embedding": embedding,
+    }
+
+    return elastic_con.index(index="users", id=int(user_id), body=default_doc)
+
+
+def main():
+    index_creation_output = create_ES_index()
+    print(f"[INFO] {index_creation_output}")
+
+    face_encoding = np.load(args["file"], allow_pickle=True)
+    response_ES = post_user_to_ES_index("Caio", face_encoding, 1)
+    print(f"[INFO] {response_ES}")
+
+
+if __name__ == "__main__":
+    main()
