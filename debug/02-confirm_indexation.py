@@ -2,8 +2,21 @@ from elasticsearch import Elasticsearch
 
 es = Elasticsearch([{"host": "localhost"}])
 
-res = es.get(index="users", id=1)
-print(res["_source"])
+
+def get_username(id, index):
+    """retreive an user from users index on ES according to a given id
+
+    Args:
+        id (integer): desired user's id.
+        index (string): users index on ES.
+    """
+    res = es.get(index=index, id=id)
+    print(res["_source"])
 
 
-# REFERENCE: https://www.elastic.co/guide/en/elasticsearch/reference/7.x/query-dsl-script-score-query.html
+def main():
+    get_username(1, "users")
+
+
+if __name__ == "__main__":
+    main()
