@@ -34,8 +34,9 @@ services:
   elasticsearch:
     build:
       context: elastic/
-    env_file:
-      - .env
+      args:
+        ELK_VERSION: $ELK_VERSION
+    container_name: elasticsearch
     volumes:
       - type: bind
         source: ./elastic/config/elasticsearch.yml
@@ -53,12 +54,14 @@ services:
     networks:
       - elk
 
+
   # kibana-container
   kibana:
     build:
       context: kibana/
-    env_file:
-      - .env
+      args:
+        ELK_VERSION: $ELK_VERSION
+    container_name: kibana
     volumes:
       - type: bind
         source: ./kibana/config/kibana.yml
@@ -66,8 +69,6 @@ services:
         read_only: true
     ports:
       - "5601:5601"
-      
-    # attach container to bridge net
     networks:
       - elk
     depends_on:
